@@ -28,11 +28,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
+//@RestController
 @Controller
 @RequiredArgsConstructor
 @Log4j2
@@ -77,6 +75,11 @@ public class BoardController {
     public String listGET(Model model, HttpSession session) {
         List<BoardDTO> boardList = boardService.findAllByOrderByRegDateDesc(); // 모든 게시글을 가져오는 서비스 메소드
         UserDTO loggedInUser = (UserDTO) session.getAttribute("user");
+
+        boardList.forEach(board -> {
+            board.setIsLiked(boardService.isLikedByUser(board.getBoardId(), loggedInUser.getUserId()));
+            board.setIsBookmarked(boardService.isBookmarkedByUser(board.getBoardId(), loggedInUser.getUserId()));
+        });
         model.addAttribute("loggedInUser", loggedInUser);
         model.addAttribute("boardList", boardList);
         return "board/list"; // list.html 파일을 반환하도록 설정
@@ -149,7 +152,7 @@ public class BoardController {
 
         // 세션에서 로그인된 사용자 정보 가져오기
         UserDTO loggedInUser = (UserDTO) session.getAttribute("user"); // 세션에 저장된 사용자 정보 사용
-        model.addAttribute("dto", boardDTO);
+        model.addAttribute("board", boardDTO);
 
         if (loggedInUser != null) {
             model.addAttribute("loggedInUser", loggedInUser);
@@ -257,15 +260,43 @@ public class BoardController {
         return "redirect:/list";
     }
 
+    //     좋아요, 북마크
     @PostMapping("/toggleLike")
     public ResponseEntity<Boolean> toggleLike(@RequestParam Long boardId, @RequestParam Long userId) {
+        log.info("toggleLike called with boardId: {}, userId: {}", boardId, userId); // 로깅 추가
+
         Boolean isLiked = boardService.toggleLike(boardId, userId);
+        log.info("toggleLike result: {}", isLiked);
+
         return ResponseEntity.ok(isLiked);
     }
 
     @PostMapping("/toggleBookmark")
     public ResponseEntity<Boolean> toggleBookmark(@RequestParam Long boardId, @RequestParam Long userId) {
+        log.info("toggleBookmark called with boardId: {}, userId: {}", boardId, userId); // 로깅 추가
+
         Boolean isBookmarked = boardService.toggleBookmark(boardId, userId);
+        log.info("toggleBookmark result: {}", isBookmarked);
+
         return ResponseEntity.ok(isBookmarked);
     }
+
+
+
+//    @PostMapping("/toggleLike")
+//    public ResponseEntity<Boolean> toggleLike(@RequestBody Map<String, Long> payload) {
+//        Long boardId = payload.get("boardId");
+//        Long userId = payload.get("userId");
+//        Boolean isLiked = boardService.toggleLike(boardId, userId);
+//        return ResponseEntity.ok(isLiked);
+//    }
+//
+//    @PostMapping("/toggleBookmark")
+//    public ResponseEntity<Boolean> toggleBookmark(@RequestBody Map<String, Long> payload) {
+//        Long boardId = payload.get("boardId");
+//        Long userId = payload.get("userId");
+//        Boolean isBookmarked = boardService.toggleBookmark(boardId, userId);
+//        return ResponseEntity.ok(isBookmarked);
+//    }
+
 }

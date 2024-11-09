@@ -25,6 +25,9 @@ public class BoardDTO {
     private long visitCount = 0;
     private long userId;
     private String userLoginId;
+    // 좋아요, 북마크 상태 저장
+    private Boolean isLiked;
+    private Boolean isBookmarked;
     private List<String> fileNames = new ArrayList<>(); // 파일 이름 저장용
     private List<MultipartFile> files = new ArrayList<>(); // 업로드된 파일 저장용
     private List<BoardImageDTO> images = new ArrayList<>(); // 이미지 정보 담을 리스트

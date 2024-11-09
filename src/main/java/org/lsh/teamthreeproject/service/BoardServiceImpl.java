@@ -269,15 +269,37 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
+    public Boolean toggleBookmark(Long boardId, Long userId) {
+        Optional<BookMark> existingBookmark = bookmarkRepository.findByBoardBoardIdAndUserUserId(boardId, userId);
+
+        if (existingBookmark.isPresent()) { // 존재하면
+            // 북마크가 이미 존재하면 삭제하여 해제
+            bookmarkRepository.delete(existingBookmark.get());
+            return false;
+        } else { // 존재하지 않으면
+            // 새로운 북마크 추가
+            BookMark newBookmark = BookMark.builder()
+                    .id(new BookMarkId(boardId, userId))
+                    .board(new Board(boardId))
+                    .user(new User(userId))
+                    .build();
+            bookmarkRepository.save(newBookmark);
+            return true;
+        }
+    }
+
+
+    @Override
     public Boolean toggleLike(Long boardId, Long userId) {
         Optional<BoardLike> existingLike = boardLikeRepository.findByBoardBoardIdAndUserUserId(boardId, userId);
 
-        if (existingLike.isPresent()) {
+        if (existingLike.isPresent()) { // 좋아요가 이미 있다면
             BoardLike boardLike = existingLike.get();
-            boardLike.setIsDeleted(!boardLike.getIsDeleted()); // true -> false, false -> true 토글
+            boardLike.setIsDeleted(!boardLike.getIsDeleted()); // 좋아요 삭제여부 반환
             boardLikeRepository.save(boardLike);
-            return boardLike.getIsDeleted();
+            return !boardLike.getIsDeleted();
         } else {
+            // 새로운 좋아요 추가
             BoardLike newLike = BoardLike.builder()
                     .id(new BoardLikeId(boardId, userId))
                     .board(new Board(boardId))
@@ -289,22 +311,14 @@ public class BoardServiceImpl implements BoardService {
         }
     }
 
-    @Override
-    public Boolean toggleBookmark(Long boardId, Long userId) {
-        Optional<BookMark> existingBookmark = bookmarkRepository.findByBoardBoardIdAndUserUserId(boardId, userId);
+    public Boolean isLikedByUser(Long boardId, Long userId) {
+        return boardLikeRepository.findByBoardBoardIdAndUserUserId(boardId, userId)
+                .map(boardLike -> !boardLike.getIsDeleted())
+                .orElse(false);
+    }
 
-        if (existingBookmark.isPresent()) {
-            bookmarkRepository.delete(existingBookmark.get());
-            return false;  // 북마크 해제
-        } else {
-            BookMark newBookmark = BookMark.builder()
-                    .id(new BookMarkId(boardId, userId))
-                    .board(new Board(boardId))
-                    .user(new User(userId))
-                    .build();
-            bookmarkRepository.save(newBookmark);
-            return true;  // 북마크 등록
-        }
+    public Boolean isBookmarkedByUser(Long boardId, Long userId) {
+        return bookmarkRepository.findByBoardBoardIdAndUserUserId(boardId, userId).isPresent();
     }
 
     private BoardDTO convertEntityToDTO(Board board) {

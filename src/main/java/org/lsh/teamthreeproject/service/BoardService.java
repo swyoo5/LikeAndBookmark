@@ -30,7 +30,8 @@ public interface BoardService {
     List<BoardDTO> getPopularBoards();
     Boolean toggleLike(Long boardId, Long userId);
     Boolean toggleBookmark(Long boardId, Long userId);
-
+    Boolean isLikedByUser(Long boardId, Long userId);
+    Boolean isBookmarkedByUser(Long boardId, Long userId);
     default Board dtoToEntity(BoardDTO boardDTO, UserDTO userDTO) {
         // User 객체를 생성하여 필요한 정보를 설정
         User user = User.builder()
