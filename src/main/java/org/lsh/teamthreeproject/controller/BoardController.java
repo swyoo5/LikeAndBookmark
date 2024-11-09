@@ -44,8 +44,20 @@ public class BoardController {
     // 내가 쓴 게시물 하나 조회
     @GetMapping("/myBoard/{userId}/{boardId}")
     public String readOneBoard(@PathVariable("boardId") Long boardId,
-                               Model model) {
-        boardService.increaseVisitCount(boardId);
+                               Model model,
+                               HttpSession session) {
+        Set<Long> viewedBoards = (Set<Long>) session.getAttribute("viewedBoards");
+        if (viewedBoards == null) {
+            viewedBoards = new HashSet<>();
+            session.setAttribute("viewedBoards", viewedBoards);
+        }
+
+        if (!viewedBoards.contains(boardId)) {
+            boardService.increaseVisitCount(boardId);
+            viewedBoards.add(boardId);
+            session.setAttribute("viewedBoards", viewedBoards);
+        }
+
         Optional<BoardDTO> board = boardService.readBoard(boardId);
         if (board.isPresent()) {
             model.addAttribute("board", board.get());
@@ -145,13 +157,29 @@ public class BoardController {
 
     @GetMapping("/read/{boardId}")
     public String read(@PathVariable Long boardId, Model model, HttpSession session) {
+        // 세션에서 이미 조회한 게시물 ID 목록을 가져옴
+        Set<Long> viewedBoards = (Set<Long>) session.getAttribute("viewedBoards");
+        if (viewedBoards == null) {
+            viewedBoards = new HashSet<>();
+            session.setAttribute("viewedBoards", viewedBoards);
+        }
+
+        // 조회한 적 없는 게시물일 경우 조회수 증가
+        if (!viewedBoards.contains(boardId)) {
+            boardService.visitCount(boardId);
+            viewedBoards.add(boardId);
+            session.setAttribute("viewedBoards", viewedBoards); // 세션에 업데이트
+            log.info("조회수를 증가시켰습니다. 현재 viewedBoards: " + viewedBoards);
+        } else {
+            log.info("이미 조회한 게시물입니다. 조회수를 증가하지 않습니다.");
+        }
+
         // 게시글 읽기
         BoardDTO boardDTO = boardService.readOne(boardId);
-        boardService.visitCount(boardId);
         log.info(boardDTO);
 
         // 세션에서 로그인된 사용자 정보 가져오기
-        UserDTO loggedInUser = (UserDTO) session.getAttribute("user"); // 세션에 저장된 사용자 정보 사용
+        UserDTO loggedInUser = (UserDTO) session.getAttribute("user");
         model.addAttribute("board", boardDTO);
 
         if (loggedInUser != null) {
@@ -160,6 +188,7 @@ public class BoardController {
 
         return "board/read";  // 템플릿 이름이 "board/read"라면 이렇게 명시
     }
+
 
     private List<String> fileUpload(UploadFileDTO uploadFileDTO){
 
